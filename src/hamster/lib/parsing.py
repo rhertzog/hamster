@@ -19,6 +19,14 @@ tag_re = re.compile(r"""
     )
 """, flags=re.VERBOSE)
 
+tags_in_description = re.compile(r"""
+    \#
+    (?P<tag>
+        [a-zA-Z] # Starts with an alphabetic character (digits excluded)
+        [^\s]+   # followed by anything except spaces
+    )
+""", flags=re.VERBOSE)
+
 tags_separator = re.compile(r"""
     ,{1,2}      # 1 or 2 commas
     \s*         # maybe spaces
@@ -58,13 +66,18 @@ def parse_fact(text, range_pos="head", default_day=None, ref="now"):
         tags = list(map(lambda x: x.strip(), re.findall(tag_re, tags_part)))
     else:
         tags = []
-    res["tags"] = tags
 
     # description
     # first look for comma (description hard left boundary)
     head, sep, description = remaining_text.partition(",")
+    # Extract tags from description, put them before other tags
+    tags = list(re.findall(tags_in_description, description)) + tags
+    # Update the description to drop hash from tag words
+    description = "".join(re.split(tags_in_description, description))
     res["description"] = description.strip()
     remaining_text = head.strip()
+
+    res["tags"] = tags
 
     # activity
     split = remaining_text.rsplit('@', maxsplit=1)

@@ -97,8 +97,9 @@ class TestFactParsing(unittest.TestCase):
         # plain activity name
         activity = Fact.parse("#case, description with #hash, #and #some #tägs")
         self.assertEqual(activity.activity, "#case")
-        self.assertEqual(activity.description, "description with #hash")
-        self.assertEqual(set(activity.tags), set(["and", "some", "tägs"]))
+        self.assertEqual(activity.description, "description with hash")
+        self.assertEqual(set(activity.tags),
+                         set(["and", "hash", "some", "tägs"]))
         assert not activity.category
         assert activity.start_time is None
         assert activity.end_time is None
@@ -107,6 +108,16 @@ class TestFactParsing(unittest.TestCase):
         activity = Fact.parse("devel, fun times, #bugs, #pr, #hamster")
         self.assertEqual(set(activity.tags),
                          set(["bugs", "pr", "hamster"]))
+
+    def test_tag_in_description_replaces_tags_with_words(self):
+        activity = Fact.parse("devel, fix #bugs in #hamster")
+        self.assertEqual(activity.description, "fix bugs in hamster")
+        self.assertEqual(set(activity.tags), set(["bugs", "hamster"]))
+
+    def test_tag_in_description_ignores_tag_starting_with_a_number(self):
+        activity = Fact.parse("case, fix bug #123, #tag1")
+        self.assertEqual(activity.description, "fix bug #123")
+        self.assertEqual(set(activity.tags), set(["tag1"]))
 
     def test_tags_without_description(self):
         activity = Fact.parse("case, #tag1 #tag2")
@@ -122,8 +133,8 @@ class TestFactParsing(unittest.TestCase):
         self.assertEqual(activity.end_time.strftime("%H:%M"), "13:25")
         self.assertEqual(activity.activity, "case")
         self.assertEqual(activity.category, "cat")
-        self.assertEqual(activity.description, "description #hash non-tag")
-        self.assertEqual(set(activity.tags), set(["bäg", "tag"]))
+        self.assertEqual(activity.description, "description hash non-tag")
+        self.assertEqual(set(activity.tags), set(["hash", "bäg", "tag"]))
 
     def test_copy(self):
         fact1 = Fact.parse("12:25-13:25 case@cat, description #tag #bäg")
@@ -212,8 +223,8 @@ class TestFactParsing(unittest.TestCase):
         fact = Fact.parse("11:00 12:00 activity@category, description, with comma and #hash, #tag1 #tag2")
         self.assertEqual(fact.activity, "activity")
         self.assertEqual(fact.category, "category")
-        self.assertEqual(fact.description, "description, with comma and #hash")
-        self.assertEqual(fact.tags, ["tag1", "tag2"])
+        self.assertEqual(fact.description, "description, with comma and hash")
+        self.assertEqual(fact.tags, ["hash", "tag1", "tag2"])
 
     # ugly. Really need pytest
     def test_roundtrips(self):
@@ -237,7 +248,6 @@ class TestFactParsing(unittest.TestCase):
                         for description in (
                             "",
                             "description",
-                            "with #hash",
                             "with, comma",
                             "with @at",
                             "multiline\ndescription",

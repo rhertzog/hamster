@@ -33,6 +33,10 @@ tags_separator = re.compile(r"""
     (?=\#)      # hash character (start of first tag, doesn't consume it)
 """, flags=re.VERBOSE)
 
+description_separator = re.compile(r"""
+    ,+          # 1 or more commas
+    \s*         # maybe spaces
+""", flags=re.VERBOSE)
 
 def parse_fact(text, range_pos="head", default_day=None, ref="now"):
     """Extract fact fields from the string.
@@ -69,7 +73,9 @@ def parse_fact(text, range_pos="head", default_day=None, ref="now"):
 
     # description
     # first look for comma (description hard left boundary)
-    head, sep, description = remaining_text.partition(",")
+    split = re.split(description_separator, remaining_text, 1)
+    head = split[0]
+    description = split[1] if len(split) > 1 else ""
     # Extract tags from description, put them before other tags
     tags = list(re.findall(tags_in_description, description)) + tags
     # Update the description to drop hash from tag words
